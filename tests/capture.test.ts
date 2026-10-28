@@ -1,0 +1,7 @@
+import {it,expect,describe} from 'vitest';
+import {extractArticle,filteredDocument} from '../src/content/article';
+import {selectionText,uuid} from '../src/content/selection';
+import type {PageBinding} from '../src/shared/types';
+const b:PageBinding={id:'b',ownerId:'o',windowId:1,tabId:1,documentId:'d',url:'https://example.com/a',pageKey:'https://example.com/a',readingStatus:'reading',revision:0};
+describe('过滤副本、文章正文、代码与表格',()=>{it('不改原文且排除敏感与资源，保留正文结构',()=>{document.body.innerHTML='<nav>广告</nav><article><h1>文章标题</h1>'+('<p>这是测试文章，用来解释阅读与对话系统的边界和实现。它包含需要保留的独特信息。</p>'.repeat(8))+'<pre><code>const a = 1;\nnext();</code></pre><table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table><input value="PRIVATE"><img src="https://example.invalid/x"></article>';const original=document.body.innerHTML;expect(filteredDocument(document).querySelector('input,img')).toBeNull();const a=extractArticle(document,b);expect(a.markdown).toContain('const a = 1;\nnext();');expect(a.markdown).toContain('| A | B |');expect(a.markdown).not.toContain('PRIVATE');expect(document.body.innerHTML).toBe(original);});});
+describe('划选排除与划选生命周期',()=>{it('敏感混合选区拒绝，UUID规范',()=>{document.body.innerHTML='<p>普通正文</p><input value="private"><div contenteditable>秘密</div>';const r=document.createRange();r.selectNodeContents(document.body);const s=document.getSelection()!;s.removeAllRanges();s.addRange(r);expect(selectionText(document)).toBeNull();expect(uuid()).toMatch(/^[a-f0-9-]{14}4/);expect(uuid()).not.toBe(uuid());});});

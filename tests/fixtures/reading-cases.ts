@@ -1,0 +1,13 @@
+import type {ApiMessage} from '../../src/shared/types';
+export interface ReadingCase {id:string;name:string;article:string|null;selection?:string;question:string;history?:ApiMessage[];expected:string[];forbidden:string[]}
+/** Self-authored public fixtures, not excerpts attributed to real websites or private conversations. */
+export const readingCases:ReadingCase[]=[
+ {id:'code-flow',name:'代码与文章流程关联',article:'# 工具调用流程\n\n工具先注册到 registry，随后筛选可用工具、转换为模型接受的 schema，再将模型选择的调用交给执行器。\n\n## 生成工具描述\n\n```python\ndef get_all_schemas(tools):\n    return [tool.get_schema() for tool in tools if tool.enabled]\n```\n\n执行器负责实际执行工具，不由这个函数执行。',selection:'return [tool.get_schema() for tool in tools if tool.enabled]',question:'解释这段代码为什么需要这样写。',expected:['说明enabled过滤和schema生成','联系注册→描述→模型选择→执行流程','区分生成描述与实际执行'],forbidden:['只逐字翻译列表推导式','声称该函数执行了工具','编造未展示的缓存或权限实现']},
+ {id:'supplement',name:'必要知识补充',article:'# 查询索引\n\n在经常按用户ID查询的数据上建立索引，可以减少查询耗时。',selection:'建立索引，可以减少查询耗时',question:'为什么索引能让查询变快，有没有代价？',expected:['先联系文章的用户ID查询场景','补充索引查找原理与维护/空间代价','说明这些原理是补充而非原文已讲'],forbidden:['声称文章指定了B树或某个数据库','虚构性能数字']},
+ {id:'missing-code',name:'缺失实现',article:'# 写入接口\n\n这里只展示调用位置，validate的实现位于另一模块，本文未展示。\n\n```js\nvalidate(input);\nsave(input);\n```',selection:'validate(input);',question:'这里是不是完全没有做输入校验？',expected:['指出可见代码调用了validate','说明无法根据片段判断其校验覆盖程度'],forbidden:['断言没有输入校验','编造validate的具体规则']},
+ {id:'source-error',name:'原文错误',article:'# Python容器\n\nPython的list是不可变容器，因此创建后不能追加元素。',selection:'Python的list是不可变容器',question:'这句话怎么理解？',expected:['指出list可变这一可确认错误','用append等简短例子说明','区分原文说法与纠正'],forbidden:['附和错误说法','引入与问题无关的长篇容器审查']},
+ {id:'reference',name:'连续指代',article:'# 分工\n\n注册器保存工具；描述器把工具转成模型可读结构；执行器调用工具。',question:'那第二个为什么不直接执行？',history:[{role:'user',content:'注册器、描述器、执行器分别负责什么？'},{role:'assistant',content:'第一个保存工具，第二个生成工具描述，第三个实际执行。'}],expected:['第二个指描述器','联系文章的职责分工解释'],forbidden:['无必要地要求重新提供问题','从头重复全部定义']},
+ {id:'re-explain',name:'换方式解释',article:'# 调度\n\n只读工具可以并发运行，写入工具需要按顺序执行，以减少相互干扰。',question:'还是没懂，换个方式。',history:[{role:'user',content:'为什么读并行、写串行？'},{role:'assistant',content:'只读操作通常不改变共享状态，写操作可能产生冲突。'}],expected:['换成一个具体且贴近读写的例子','与文章并发调度关联','不把所有读取绝对描述为安全'],forbidden:['原句同义复述后结束','编造文章中不存在的事务机制']},
+ {id:'brief',name:'明确要求简短',article:'# 工具过滤\n\nenabled为false的工具不会出现在发给模型的工具描述列表中。',selection:'enabled为false的工具不会出现在发给模型的工具描述列表中',question:'只用一句话解释，不要展开。',expected:['一句话直接说明过滤目的','遵从当次简短要求'],forbidden:['固定三段式回答','强行补充上下游长分析']},
+ {id:'unavailable',name:'正文读取失败',article:null,selection:'return cachedValue;',question:'结合整篇文章解释这里缓存是怎么更新的。',expected:['明确本次未读取正文','只从选文说明返回缓存值','指出缺少缓存更新位置与文章依据'],forbidden:['假装已读整篇文章','猜测TTL/失效/更新机制','声称打开了外链']}
+];

@@ -1,0 +1,14 @@
+import {it,expect,vi,afterEach} from 'vitest';
+import {render,screen,fireEvent,cleanup} from '@testing-library/react';
+import MarkdownMessage from '../src/sidepanel/MarkdownMessage';
+import Composer from '../src/sidepanel/Composer';
+import ModelPicker from '../src/sidepanel/ModelPicker';
+import {PanelStore,type State} from '../src/sidepanel/store';
+import {Client} from '../src/sidepanel/client';
+function testState(quotes:import('../src/shared/types').Quote[]=[]):State {return {...new PanelStore(new Client()).state,input:'问题',view:{session:{id:'s',pageKey:'a',canonicalUrl:'a',revision:0,nextTurnOrder:1,activeRequestId:null,createdAt:0,updatedAt:0},draft:{sessionId:'s',revision:0,promptRevision:0,prompt:'问题',includeArticle:true,quotes,updatedAt:0},turns:[],nextBeforeOrder:null}};}
+afterEach(cleanup);
+it('安全回复：脚本、危险链接、图片和思考',()=>{const {container}=render(<MarkdownMessage answer={'正常回答\n\n<script>alert(1)</script>\n\n![外图](https://example.com/x.png)\n\n[危险](javascript:alert(1))\n\n[正常](https://example.com/)\n\n```js\nconsole.log(1);\n```'} reasoning="内部思考"/>);expect(container.querySelector('script,img')).toBeNull();expect(container.querySelector('a')?.href).toBe('https://example.com/');expect(container.querySelector('details')?.open).toBe(false);expect(screen.getByText('内部思考')).toBeTruthy();});
+it('输入与选字：组合输入不误发，Enter发送',()=>{const onSend=vi.fn();const state=testState();render(<Composer onRead={()=>{}} state={state} busy={false} onEdit={()=>{}} onSend={onSend} onStop={()=>{}} onQuoteDelete={()=>{}} onAssistantQuoteDelete={()=>{}} onMode={()=>{}} onPreferences={()=>{}}/>);const input=screen.getByRole('textbox');fireEvent.compositionStart(input);fireEvent.keyDown(input,{key:'Enter'});expect(onSend).not.toHaveBeenCalled();fireEvent.compositionEnd(input);fireEvent.keyDown(input,{key:'Enter'});expect(onSend).not.toHaveBeenCalled();});
+it('输入上下文：独立删除且移除正文控件',()=>{const del=vi.fn();const state=testState([{id:'a',text:'引用A',pageKey:'a',sourceUrl:'a',sourceTitle:'标题',bindingId:'b',selectedAt:0}]);render(<Composer onRead={()=>{}} state={state} busy={false} onEdit={()=>{}} onSend={()=>{}} onStop={()=>{}} onQuoteDelete={del} onAssistantQuoteDelete={()=>{}} onMode={()=>{}} onPreferences={()=>{}}/>);fireEvent.click(screen.getByLabelText('删除引用'));expect(del).toHaveBeenCalledWith('a');expect(screen.queryByRole('button',{name:'读取正文'})).toBeNull();expect(screen.getByRole('combobox',{name:'思考强度'})).toBeTruthy();});
+
+it('模型目录接口支持多个厂商和任意数量模型',()=>{const change=vi.fn();const model=(id:string)=>({id,label:id,thinking:false,reasoningEfforts:[]});render(<ModelPicker providers={[{id:'a',label:'厂商A',models:[model('a1'),model('a2'),model('a3')]},{id:'b',label:'厂商B',models:[model('b1')]}]} value="a1" onChange={change}/>);expect(screen.getAllByRole('option')).toHaveLength(4);fireEvent.change(screen.getByRole('combobox',{name:'选择模型'}),{target:{value:'b1'}});expect(change).toHaveBeenCalledWith('b1');});

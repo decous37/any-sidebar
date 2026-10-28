@@ -1,0 +1,13 @@
+node_modules/
+dist/
+release/
+artifacts/
+.env*
+.DS_Store
+playwright-report/
+test-results/
+# 本机开发和验收记录，不随公开仓库发布
+docs/specs/
+docs/validation-report.md
+docs/publishing.md
+docs/store-listing.md
